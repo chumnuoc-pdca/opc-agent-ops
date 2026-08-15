@@ -1,0 +1,36 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+.env
+
+# Dữ liệu thật của app (SQLite + file WAL/SHM đi kèm) - KHÔNG được vào git,
+# mỗi lần deploy sẽ tự tạo DB rỗng rồi seed lại (xem README/CLAUDE.md).
+data/
+
+# Tài liệu tham khảo nghiệp vụ (playbook, ảnh/video mẫu UI...) - không phải
+# code, khá nặng (có file .mp4), không cần theo dõi bằng git.
+Ref/
+
+# Cấu hình cục bộ của Claude Code (không phải code của app).
+.claude/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
