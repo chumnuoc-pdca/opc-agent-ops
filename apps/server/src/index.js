@@ -18,6 +18,7 @@ import streamRoutes from './routes/stream.js';
 import hrMetaRoutes from './routes/hrMeta.js';
 import personnelRoutes from './routes/personnel.js';
 import authRoutes, { isValidSessionToken, SESSION_COOKIE } from './routes/auth.js';
+import adminRestoreRoutes from './routes/adminRestore.js';
 import { loadAgentRegistry, watchAgentRegistry } from './agents-loader.js';
 import { startWorker } from './worker/index.js';
 import { startHrMetaSchedule } from './hrMetaAgent.js';
@@ -34,12 +35,15 @@ await fastify.register(cookie);
 // dễ kiểm tra server sống) nếu chưa có cookie session hợp lệ - xem plan §4.
 fastify.addHook('onRequest', async (request, reply) => {
   if (!request.url.startsWith('/api/') || request.url.startsWith('/api/auth/') || request.url === '/api/health') return;
+  // Tự có token riêng (ADMIN_RESTORE_TOKEN), không cần cookie session.
+  if (request.url === '/api/admin/restore-db') return;
   if (!isValidSessionToken(request.cookies?.[SESSION_COOKIE])) {
     reply.code(401).send({ error: 'Unauthorized' });
   }
 });
 
 await fastify.register(authRoutes);
+await fastify.register(adminRestoreRoutes);
 await fastify.register(structureRoutes);
 await fastify.register(moduleCopyRoutes);
 await fastify.register(boardRoutes);

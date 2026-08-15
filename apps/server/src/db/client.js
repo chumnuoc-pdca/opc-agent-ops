@@ -11,6 +11,7 @@ const DB_PATH = process.env.DB_PATH || join(__dirname, '../../../../data/opc.db'
 
 mkdirSync(dirname(DB_PATH), { recursive: true });
 
+export { DB_PATH };
 export const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
