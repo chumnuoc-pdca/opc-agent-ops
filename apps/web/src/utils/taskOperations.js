@@ -153,6 +153,8 @@ export const createTask = (moduleId, columnId, data) => {
     documents: data.documents || [],
     tags: data.tags || [],
     coverColor: data.coverColor || null,
+    estimateMinutes: data.estimateMinutes ?? null,
+    actualMinutes: 0,
     createdAt: Date.now()
   };
 

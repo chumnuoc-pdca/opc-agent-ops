@@ -15,6 +15,7 @@ import { uploadBufferToDrive } from '../integrations/googleDrive.js';
 import { postToFacebookPage } from '../integrations/facebook.js';
 import { postVideoToTikTok } from '../integrations/tiktok.js';
 import { publishWordpressPost } from '../integrations/wordpress.js';
+import { searchKnowledge } from './knowledgeIndex.js';
 
 const newKvId = (prefix) => `${prefix}-${Date.now()}-${Math.round(Math.random() * 1000)}`;
 
@@ -100,6 +101,21 @@ export const AI_TOOLS = [
       name: 'get_upcoming_deadlines',
       description: 'Liệt kê công việc quá hạn hoặc sắp đến hạn trong X ngày tới, trên toàn hệ thống.',
       parameters: { type: 'object', properties: { withinDays: { type: 'number', description: 'Mặc định 7' } }, required: [] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_knowledge',
+      description: 'Tìm kiếm từ khoá trong ghi chú/kho tri thức (Task Note, Group Note, Knowledge Item) và nội dung công việc thật đã lưu trong hệ thống. Dùng khi người dùng hỏi "tôi đã ghi gì về X", "tổng hợp ghi chú về Y", hoặc cần tra cứu tri thức/hướng dẫn nội bộ đã lưu trước đó. Đây là tìm kiếm từ khoá (không phải ngữ nghĩa) - dùng đúng từ khoá xuất hiện trong nội dung cần tìm.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Từ khoá cần tìm, có thể nhiều từ (mỗi từ được khớp riêng, không cần khớp cụm chính xác)' },
+          limit: { type: 'number', description: 'Số kết quả tối đa (mặc định 5, tối đa 10)' }
+        },
+        required: ['query']
+      }
     }
   },
   {
@@ -460,6 +476,7 @@ export const TOOL_RISK = {
   get_module_summary: 'R0',
   get_overview_summary: 'R0',
   get_upcoming_deadlines: 'R0',
+  search_knowledge: 'R0',
   fetch_news_by_keyword: 'R0',
   generate_image: 'R2',
   generate_video: 'R2',
@@ -727,6 +744,12 @@ export const executeAiTool = async (name, rawArgs = {}) => {
         if (results.length >= limit) break;
       }
       return { count: results.length, tasks: results };
+    }
+
+    case 'search_knowledge': {
+      const limit = Math.min(args.limit || 5, 10);
+      const items = searchKnowledge(args.query, limit);
+      return { count: items.length, items };
     }
 
     case 'get_task_detail': {

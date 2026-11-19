@@ -9,6 +9,7 @@ import { updateTask, moveTask, createTask } from '../utils/taskOperations';
 import { onDataChanged } from '../utils/dataBus';
 import { PRIORITY_LABELS } from '../data/initialData';
 import HeaderActions from './HeaderActions';
+import TimeBlockGrid from './TimeBlockGrid';
 import { useOverlayClose } from '../utils/useOverlayClose';
 import { useIsMobile } from '../utils/useIsMobile';
 
@@ -724,90 +725,23 @@ export default function CalendarPage({ theme, onToggleTheme, onJumpToModule, fla
                 </div>
               </div>
 
-              {/* Single Day Pure Task List Container */}
-              <div className="daily-pure-task-list scrollable-vertical-hours">
-                {(tasksByDate.get(toISO(activeDate)) || []).length > 0 ? (
-                  (tasksByDate.get(toISO(activeDate)) || []).map(({ module: slotModule, task: slotTask }) => {
-                    const isCompleted = slotTask.progress >= 100;
-                    const isInProgress = slotTask.progress > 0 && slotTask.progress < 100;
-                    const isDeadline = slotTask.dueDate === toISO(activeDate);
-
-                    const statusKey = isCompleted ? 'completed' : isInProgress ? 'progress' : isDeadline ? 'deadline' : 'todo';
-                    const statusLabel = isCompleted
-                      ? 'Đã hoàn thành'
-                      : isInProgress
-                        ? `Đang làm (${slotTask.progress}%)`
-                        : isDeadline
-                          ? 'Deadline hạn chót'
-                          : 'Cần làm';
-
-                    return (
-                      <div
-                        key={slotTask.id}
-                        className={`daily-rich-task-card accent-${slotModule.accent || 'indigo'}`}
-                        onClick={() => setSelectedTaskDetail({ module: slotModule, task: slotTask })}
-                      >
-                        <div className="card-top-row">
-                          <span className={`module-code-chip accent-${slotModule.accent || 'indigo'}`}>
-                            {slotTask.code || slotModule.code}
-                          </span>
-                          <span className="card-module-meta">
-                            {slotModule.groupTitle || 'NHÓM OPC'} · {slotModule.title}
-                          </span>
-                          {slotTask.priority && (
-                            <span className={`priority-tag priority-${slotTask.priority}`}>
-                              <Flag size={10} /> {PRIORITY_LABELS[slotTask.priority] || PRIORITY_LABELS.medium}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="card-task-title-row">
-                          <button
-                            type="button"
-                            className={`task-quick-complete-btn ${isCompleted ? 'done' : ''}`}
-                            onClick={(e) => handleQuickCompleteCalendarTask(slotModule.id, slotTask.id, isCompleted, e)}
-                            title={isCompleted ? 'Đánh dấu chưa xong' : 'Tích xanh hoàn thành nhanh'}
-                          >
-                            {isCompleted ? <CheckCircle2 size={16} /> : <Circle size={16} />}
-                          </button>
-                          <h4 className={`card-task-title ${isCompleted ? 'done' : ''}`}>{slotTask.content}</h4>
-                        </div>
-                        {slotTask.notes && (
-                          <p className="card-task-notes-preview">{slotTask.notes}</p>
-                        )}
-
-                        <div className="card-bottom-row">
-                          <div className="card-bottom-row-left">
-                            <div className="card-time-info">
-                              <Clock size={13} />
-                              <span>{formatShortDate(slotTask.startDate)} ➔ {formatShortDate(slotTask.dueDate)}</span>
-                            </div>
-                            <span className={`status-dot-label status-${statusKey}`}>
-                              <span className="status-dot" /> {statusLabel}
-                            </span>
-                          </div>
-
-                          <div className="card-assignee-info">
-                            <span className="info-label-sm">Phụ trách: </span>
-                            {slotTask.assignee ? (
-                              <span className={`assignee-chip type-${slotTask.assignee.type || 'human'}`}>
-                                {slotTask.assignee.type === 'agent' ? <Bot size={11} /> : <User size={11} />}
-                                <strong>{slotTask.assignee.name}</strong>
-                              </span>
-                            ) : (
-                              <span className="unassigned-text">Chưa gán</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="empty-day-tasks-box">
-                    <p>Không có công việc nào lên lịch cho ngày này.</p>
-                  </div>
+              {/* Phase 15: lưới giờ kéo-thả thật - tách biệt hoàn toàn due_date
+                  (xem TimeBlockGrid.jsx). Khay "Chưa xếp lịch" lọc lại từ
+                  tasksByDate, CHỈ giữ task có due_date/start_date THẬT khớp
+                  đúng ngày này - tasksByDate còn dồn cả task hoàn toàn không
+                  có ngày nào vào "hôm nay" theo fallback riêng của nó (dùng
+                  cho các view khác), không phù hợp cho khay này. */}
+              <TimeBlockGrid
+                dateISO={toISO(activeDate)}
+                unscheduledItems={(tasksByDate.get(toISO(activeDate)) || []).filter(
+                  ({ task }) => task.dueDate === toISO(activeDate) || task.startDate === toISO(activeDate)
                 )}
-              </div>
+                onOpenTask={(compactTask) => {
+                  const found = allTasksList.find(({ task }) => task.id === compactTask.id);
+                  if (found) setSelectedTaskDetail(found);
+                }}
+                refreshSignal={refreshKey}
+              />
             </div>
           ) : (
             /* Weekly View: Master Task Feed Board (Cards View Layout) */

@@ -18,6 +18,8 @@ export const rowToTask = (row) => ({
   documents: JSON.parse(row.documents_json || '[]'),
   tags: JSON.parse(row.tags_json || '[]'),
   coverColor: row.cover_color || null,
+  estimateMinutes: row.estimate_minutes ?? null,
+  actualMinutes: row.actual_minutes ?? 0,
   agentRun: {
     status: row.agent_run_status || 'none',
     agentId: row.agent_run_agent_id || null,

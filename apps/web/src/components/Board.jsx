@@ -5,7 +5,7 @@ import {
   Plus, GripVertical, Info, X, Edit2, Save,
   MoreHorizontal, Trash2, Calendar, Flag, User, Bot, CheckSquare, Ban, Link2, Sparkles,
   Check, ChevronDown, ChevronUp, ChevronRight, Pin, Target, Paperclip, Tag, Archive, ArrowRightLeft,
-  Circle, CheckCircle2, Clock, Columns3, Lock, Filter, Settings, Bell, Minimize2, Maximize2, AtSign, Hash
+  Circle, CheckCircle2, Clock, Columns3, Lock, Filter, Settings, Bell, Minimize2, Maximize2, AtSign, Hash, SlidersHorizontal
 } from 'lucide-react';
 import { useIsMobile } from '../utils/useIsMobile';
 import { PRIORITY_LABELS, flattenGroups } from '../data/initialData';
@@ -16,6 +16,8 @@ import {
 } from '../utils/boardStorage';
 import { getTags, getTagByNameOrId } from '../utils/tagStorage';
 import { onDataChanged } from '../utils/dataBus';
+import { formatMinutes } from '../utils/timeTrackingOperations';
+import { fetchTimeStats } from '../utils/timeStatsOperations';
 import {
   createTask, updateTask, deleteTask, moveTask, clearColumn as clearColumnTasks, toggleChecklistItem,
   archiveTask, unarchiveTask
@@ -86,6 +88,19 @@ export default function Board({ module, groups, theme, onToggleTheme, onJumpToMo
   const [allTags, setAllTags] = useState(() => getTags());
 
   const [boardData, setBoardData] = useState(() => loadModuleBoard(module));
+
+  const [moduleTimeStats, setModuleTimeStats] = useState(null);
+  // Kết nối Time tracking (Phase 12) vào trang Board module đã có sẵn từ
+  // trước - tổng thời gian thật đã theo dõi 30 ngày gần nhất, lọc đúng
+  // module đang xem (API lọc theo group, tự lọc tiếp về đúng module ở client).
+  useEffect(() => {
+    const localDateISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const to = new Date();
+    const from = new Date(Date.now() - 29 * 86400000);
+    fetchTimeStats({ from: localDateISO(from), to: localDateISO(to) })
+      .then((s) => setModuleTimeStats(s.byModule.find((m) => m.moduleId === module.id) || null))
+      .catch(() => setModuleTimeStats(null));
+  }, [module.id]);
 
   const archivedTasks = useMemo(() => {
     return Object.values(boardData.tasks || {}).filter(t => t.archived);
@@ -601,6 +616,11 @@ export default function Board({ module, groups, theme, onToggleTheme, onJumpToMo
             <div className="board-title-row">
               <h1>{module.title}</h1>
               <ModuleTypeBadge type={module.type} />
+              {moduleTimeStats && moduleTimeStats.totalMinutes > 0 && (
+                <span className="board-title-time-chip" title="Tổng thời gian đã theo dõi (Start/Stop) 30 ngày gần nhất">
+                  <Clock size={12} /> {formatMinutes(moduleTimeStats.totalMinutes)} (30 ngày)
+                </span>
+              )}
               <button className="info-btn" onClick={openInfoModal}>
                 <Info size={18} />
               </button>
@@ -699,6 +719,16 @@ export default function Board({ module, groups, theme, onToggleTheme, onJumpToMo
             >
               <Archive size={14} />
               <span>Lưu trữ ({archivedTasks.length})</span>
+            </button>
+
+            <button
+              type="button"
+              className={`sidebar-toggle-btn ${isRightSidebarOpen ? 'active' : ''}`}
+              onClick={() => setIsRightSidebarOpen(prev => !prev)}
+              title={isRightSidebarOpen ? 'Thu gọn bảng tiến độ' : 'Mở bảng tiến độ'}
+            >
+              <SlidersHorizontal size={14} />
+              <span>Bảng tiến độ</span>
             </button>
           </div>
         </div>
@@ -962,7 +992,7 @@ export default function Board({ module, groups, theme, onToggleTheme, onJumpToMo
                                                     <button
                                                       type="button"
                                                       className="task-collapse-toggle-btn"
-                                                      onClick={() => toggleTaskCollapsed(task.id)}
+                                                      onClick={(e) => toggleCardCollapse(task.id, e)}
                                                       title={isCollapsed ? 'Mở rộng thẻ' : 'Thu gọn thẻ'}
                                                     >
                                                       {isCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
@@ -1064,6 +1094,11 @@ export default function Board({ module, groups, theme, onToggleTheme, onJumpToMo
                                                         {task.documents?.length > 0 && (
                                                           <span className="doc-count-chip" title="Tài liệu liên kết">
                                                             <Paperclip size={12} /> {task.documents.length}
+                                                          </span>
+                                                        )}
+                                                        {task.actualMinutes > 0 && (
+                                                          <span className="time-tracked-chip" title="Thời gian đã theo dõi thật">
+                                                            <Clock size={12} /> {formatMinutes(task.actualMinutes)}
                                                           </span>
                                                         )}
                                                       </>

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Plus, Send, Square, Pencil, Trash2, Bot, User, Settings as SettingsIcon, Sparkles,
-  CheckCircle2, AlertTriangle, Loader2
+  CheckCircle2, AlertTriangle, Loader2, BookMarked
 } from 'lucide-react';
 import { loadSessions, saveSessions, createSession, deriveTitle } from '../utils/chatStorage';
 import MarkdownMessage from './MarkdownMessage';
@@ -14,6 +14,7 @@ const TOOL_LABELS = {
   get_module_summary: 'Tóm tắt module',
   get_overview_summary: 'Tóm tắt workspace',
   get_upcoming_deadlines: 'Xem hạn sắp tới',
+  search_knowledge: 'Tìm kiếm tri thức',
   create_task: 'Tạo công việc',
   update_task_fields: 'Cập nhật công việc',
   move_task_status: 'Chuyển trạng thái',
@@ -58,7 +59,35 @@ async function readEventStream(response, onEvent) {
   }
 }
 
-export default function ChatPage({ theme, onToggleTheme, flatModules, onOpenSettings }) {
+// Gom trích dẫn từ mọi lần gọi search_knowledge trong 1 lượt trả lời, bỏ
+// trùng theo nguồn (1 note/task có thể khớp nhiều lần nếu AI gọi tool lại
+// với từ khoá khác).
+const extractCitations = (toolActivities) => {
+  const items = [];
+  (toolActivities || []).forEach((a) => {
+    if (a.name === 'search_knowledge' && a.status === 'done') {
+      (a.result?.result?.items || []).forEach((it) => items.push(it));
+    }
+  });
+  const seen = new Set();
+  return items.filter((it) => {
+    const key = `${it.sourceType}:${it.sourceId}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+export default function ChatPage({
+  theme, onToggleTheme, flatModules, onOpenSettings,
+  onJumpToModule, onJumpToGroup, onJumpToKnowledge
+}) {
+  const handleCitationClick = (citation) => {
+    if (citation.navType === 'module' && citation.navId) onJumpToModule?.({ id: citation.navId });
+    else if (citation.navType === 'group' && citation.navId) onJumpToGroup?.(citation.navId);
+    else if (citation.navType === 'page' && citation.navId === 'knowledge') onJumpToKnowledge?.();
+  };
+
   const [sessions, setSessions] = useState(() => {
     const saved = loadSessions();
     return saved.length > 0 ? saved : [createSession()];
@@ -248,7 +277,7 @@ export default function ChatPage({ theme, onToggleTheme, flatModules, onOpenSett
             <span className="breadcrumb-current">Trợ lý AI</span>
           </div>
           <div className="header-actions-row">
-            <HeaderActions theme={theme} onToggleTheme={onToggleTheme} onJumpToModule={() => {}} flatModules={flatModules} />
+            <HeaderActions theme={theme} onToggleTheme={onToggleTheme} onJumpToModule={onJumpToModule} flatModules={flatModules} />
             <button className="icon-btn" title="Cài đặt trợ lý AI" onClick={onOpenSettings}>
               <SettingsIcon size={17} />
             </button>
@@ -329,6 +358,23 @@ export default function ChatPage({ theme, onToggleTheme, flatModules, onOpenSett
                       <span className="chat-typing-dots"><span /><span /><span /></span>
                     ) : null}
                   </div>
+                  {message.role === 'assistant' && extractCitations(message.toolActivities).length > 0 && (
+                    <div className="chat-citations">
+                      <span className="chat-citations-label"><BookMarked size={11} /> Nguồn:</span>
+                      {extractCitations(message.toolActivities).map(c => (
+                        <button
+                          key={`${c.sourceType}:${c.sourceId}`}
+                          type="button"
+                          className="chat-citation-chip"
+                          disabled={!c.navType}
+                          onClick={() => handleCitationClick(c)}
+                          title={c.snippet}
+                        >
+                          {c.title || '(không tiêu đề)'}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

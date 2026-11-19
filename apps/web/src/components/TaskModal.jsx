@@ -11,6 +11,8 @@ import AgentRunPanel from './AgentRunPanel';
 import TagManagerModal from './TagManagerModal';
 import PersonnelModal from './PersonnelModal';
 import ActionSheet from './ActionSheet';
+import TimeTrackingSection from './TimeTrackingSection';
+import NotesPanel from './NotesPanel';
 import { getPersonnelForProject } from '../utils/personnelStorage';
 import { useOverlayClose } from '../utils/useOverlayClose';
 import { useIsMobile } from '../utils/useIsMobile';
@@ -40,6 +42,7 @@ export default function TaskModal({ mode, initial, allTasks = [], module = null,
   const [priority, setPriority] = useState(initial?.priority || 'medium');
   const [startDate, setStartDate] = useState(initial?.startDate || '');
   const [dueDate, setDueDate] = useState(initial?.dueDate || '');
+  const [estimateMinutes, setEstimateMinutes] = useState(initial?.estimateMinutes ?? '');
   const [assigneeType, setAssigneeType] = useState(initial?.assignee?.type || 'human');
   const [assigneeName, setAssigneeName] = useState(initial?.assignee?.name || '');
   const [checklist, setChecklist] = useState(initial?.checklist || []);
@@ -173,7 +176,8 @@ export default function TaskModal({ mode, initial, allTasks = [], module = null,
       dependsOn: dependsOn || null,
       pdca: { plan: pdcaPlan, do: pdcaDo, check: pdcaCheck, act: pdcaAct },
       documents,
-      coverColor
+      coverColor,
+      estimateMinutes: estimateMinutes === '' ? null : Number(estimateMinutes)
     });
   };
 
@@ -224,24 +228,25 @@ export default function TaskModal({ mode, initial, allTasks = [], module = null,
             </div>
           </div>
 
-          {mode === 'edit' && (
-            <div className="task-quick-action-tiles">
-              <button type="button" className="quick-action-tile-btn" onClick={() => scrollToField(newItemInputRef)}>
-                <div className="tile-icon-box accent-teal"><CheckSquare size={14} /></div>
-                <span className="tile-label">Việc nhỏ (Checklist)</span>
-              </button>
-              <button type="button" className="quick-action-tile-btn" onClick={() => scrollToField(documentsSectionRef)}>
-                <div className="tile-icon-box accent-indigo"><Paperclip size={14} /></div>
-                <span className="tile-label">Đính kèm tệp</span>
-              </button>
-              <button type="button" className="quick-action-tile-btn" onClick={() => scrollToField(assigneeSectionRef)}>
-                <div className="tile-icon-box accent-amber"><User size={14} /></div>
-                <span className="tile-label">Gán nhân sự / Agent</span>
-              </button>
-            </div>
-          )}
-
           <div className="modal-body">
+            {mode === 'edit' && (
+              <div className="task-quick-action-tiles">
+                <button type="button" className="quick-action-tile-btn" onClick={() => scrollToField(newItemInputRef)}>
+                  <div className="tile-icon-box accent-teal"><CheckSquare size={14} /></div>
+                  <span className="tile-label">Việc nhỏ (Checklist)</span>
+                </button>
+                <button type="button" className="quick-action-tile-btn" onClick={() => scrollToField(documentsSectionRef)}>
+                  <div className="tile-icon-box accent-indigo"><Paperclip size={14} /></div>
+                  <span className="tile-label">Đính kèm tệp</span>
+                </button>
+                <button type="button" className="quick-action-tile-btn" onClick={() => scrollToField(assigneeSectionRef)}>
+                  <div className="tile-icon-box accent-amber"><User size={14} /></div>
+                  <span className="tile-label">Gán nhân sự / Agent</span>
+                </button>
+              </div>
+            )}
+
+            <div className="modal-section-label">Thông tin chung</div>
             <div className="form-field">
               <div className="label-with-ai-btn">
                 <label>Nội dung công việc</label>
@@ -331,6 +336,22 @@ export default function TaskModal({ mode, initial, allTasks = [], module = null,
                 <input type="date" value={dueDate || ''} onChange={e => setDueDate(e.target.value)} />
               </div>
             </div>
+
+            <div className="form-field">
+              <label>Thời gian dự kiến (phút)</label>
+              <input
+                type="number"
+                min="0"
+                step="5"
+                value={estimateMinutes}
+                onChange={e => setEstimateMinutes(e.target.value)}
+                placeholder="Chưa đặt"
+              />
+            </div>
+
+            {mode === 'edit' && initial && (
+              <TimeTrackingSection task={initial} actualMinutes={initial.actualMinutes || 0} />
+            )}
 
             <div className="modal-section-label">Phân công</div>
             <div className="form-field" ref={assigneeSectionRef}>
@@ -447,12 +468,20 @@ export default function TaskModal({ mode, initial, allTasks = [], module = null,
               </div>
             </div>
 
+            <div className="modal-section-label">Tài liệu &amp; Nhật ký AI</div>
             <div className="form-field" ref={documentsSectionRef}>
               <label>Tài liệu liên kết (Google Drive)</label>
               <DocumentLinker documents={documents} onChange={setDocuments} />
             </div>
 
             {mode === 'edit' && initial && <AgentRunPanel task={initial} />}
+
+            {mode === 'edit' && initial && (
+              <div className="form-field">
+                <label>Ghi chú công việc</label>
+                <NotesPanel scopeType="task" scopeId={initial.id} emptyHint="Chưa có ghi chú nào cho công việc này." />
+              </div>
+            )}
 
             {mode === 'edit' && (
               <div className="form-field task-activity-section">

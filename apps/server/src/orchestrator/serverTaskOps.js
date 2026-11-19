@@ -5,6 +5,19 @@
 // last-write-wins, unlike the frontend's whole-board bridge (see plan §5).
 import { db } from '../db/client.js';
 import { readBoard, rowToTask } from '../routes/boards.js';
+import { indexKnowledgeItem, removeKnowledgeItem } from './knowledgeIndex.js';
+
+// Task chỉ có tiêu đề (không có notes thật) không đáng index riêng cho RAG -
+// search_tasks đã tìm được theo tiêu đề rồi, giá trị của RAG nằm ở nội dung
+// notes dài (hướng dẫn/bối cảnh thật). Dùng chung cho create/update.
+const reindexTaskKnowledge = (task) => {
+  const text = (task.notes || '').trim();
+  if (!text) { removeKnowledgeItem('task', task.id); return; }
+  indexKnowledgeItem({
+    sourceType: 'task', sourceId: task.id, title: task.content, content: text,
+    navType: 'module', navId: task.moduleId
+  });
+};
 
 // 4 cột Kanban cố định seed cho MỌI module mới - dùng chung giữa
 // routes/structure.js (PUT /api/structure) và routes/moduleCopy.js (POST
@@ -186,12 +199,12 @@ export const createTask = (moduleId, columnId, data) => {
       id, module_id, column_id, position, code, content, notes, priority, start_date, due_date,
       assignee_type, assignee_name, checklist_json, progress,
       blocked_is_blocked, blocked_reason, blocked_at, depends_on,
-      pdca_plan, pdca_do, pdca_check, pdca_act, documents_json, tags_json, cover_color, created_at
+      pdca_plan, pdca_do, pdca_check, pdca_act, documents_json, tags_json, cover_color, estimate_minutes, created_at
     ) VALUES (
       @id, @module_id, @column_id, @position, @code, @content, @notes, @priority, @start_date, @due_date,
       @assignee_type, @assignee_name, @checklist_json, @progress,
       @blocked_is_blocked, @blocked_reason, @blocked_at, @depends_on,
-      @pdca_plan, @pdca_do, @pdca_check, @pdca_act, @documents_json, @tags_json, @cover_color, @created_at
+      @pdca_plan, @pdca_do, @pdca_check, @pdca_act, @documents_json, @tags_json, @cover_color, @estimate_minutes, @created_at
     )
   `).run({
     id,
@@ -219,11 +232,14 @@ export const createTask = (moduleId, columnId, data) => {
     documents_json: JSON.stringify(data.documents || []),
     tags_json: JSON.stringify(data.tags || []),
     cover_color: data.coverColor || null,
+    estimate_minutes: data.estimateMinutes ?? null,
     created_at: now
   });
 
   const row = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
-  return { module, task: rowToTask(row) };
+  const task = rowToTask(row);
+  reindexTaskKnowledge(task);
+  return { module, task };
 };
 
 const PATCH_COLUMN_MAP = {
@@ -234,7 +250,10 @@ const PATCH_COLUMN_MAP = {
   dueDate: 'due_date',
   progress: 'progress',
   dependsOn: 'depends_on',
-  coverColor: 'cover_color'
+  coverColor: 'cover_color',
+  // actual_minutes CỐ Ý không có ở đây - đó là cache chỉ được ghi bởi
+  // timeTrackingOps.js's stopTimer(), không qua PATCH thường (xem schema.sql).
+  estimateMinutes: 'estimate_minutes'
 };
 
 export const updateTask = (moduleId, taskId, patch) => {
@@ -290,7 +309,9 @@ export const updateTask = (moduleId, taskId, patch) => {
 
   const module = resolveModuleRef(moduleId);
   const row = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
-  return { module, task: rowToTask(row) };
+  const task = rowToTask(row);
+  if (patch.content !== undefined || patch.notes !== undefined) reindexTaskKnowledge(task);
+  return { module, task };
 };
 
 // Reassigns 0..N-1 positions to `orderedIds` within 1 column - a targeted
@@ -332,6 +353,7 @@ export const deleteTask = (moduleId, taskId) => {
   if (!existing) throw new TaskOpError(`Không tìm thấy công việc "${taskId}".`);
   db.prepare('UPDATE tasks SET depends_on = NULL WHERE depends_on = ?').run(taskId);
   db.prepare('DELETE FROM tasks WHERE id = ?').run(taskId);
+  removeKnowledgeItem('task', taskId);
 };
 
 export const clearColumn = (moduleId, columnId) => {

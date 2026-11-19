@@ -10,8 +10,11 @@ import CalendarPage from './components/CalendarPage';
 import GlobalTimelinePage from './components/GlobalTimelinePage';
 import ChatPage from './components/ChatPage';
 import AuditLogPage from './components/AuditLogPage';
+import KnowledgeBasePage from './components/KnowledgeBasePage';
+import TimeDashboardPage from './components/TimeDashboardPage';
 import SettingsPage from './components/SettingsPage';
 import PersonnelModal from './components/PersonnelModal';
+import ActiveTimerBar from './components/ActiveTimerBar';
 import GlobalTooltip from './components/GlobalTooltip';
 import { flattenGroups } from './data/initialData';
 import {
@@ -152,6 +155,8 @@ function App() {
     : location.pathname === '/timeline' ? { type: 'timeline' }
     : location.pathname === '/chat' ? { type: 'chat' }
     : location.pathname === '/audit-log' ? { type: 'auditLog' }
+    : location.pathname === '/knowledge' ? { type: 'knowledge' }
+    : location.pathname === '/time-dashboard' ? { type: 'timeDashboard' }
     : location.pathname === '/settings' ? { type: 'settings' }
     : { type: 'overview' };
 
@@ -162,6 +167,8 @@ function App() {
   const selectTimeline = () => navigate('/timeline');
   const selectChat = () => navigate('/chat');
   const selectAuditLog = () => navigate('/audit-log');
+  const selectKnowledge = () => navigate('/knowledge');
+  const selectTimeDashboard = () => navigate('/time-dashboard');
   const selectSettings = () => navigate('/settings');
 
   // ---- Group CRUD ----
@@ -257,6 +264,8 @@ function App() {
       onSelectTimeline={withDrawerClose(selectTimeline)}
       onSelectChat={withDrawerClose(selectChat)}
       onSelectAuditLog={withDrawerClose(selectAuditLog)}
+      onSelectKnowledge={withDrawerClose(selectKnowledge)}
+      onSelectTimeDashboard={withDrawerClose(selectTimeDashboard)}
       onSelectSettings={withDrawerClose(selectSettings)}
       onOpenPersonnel={withDrawerClose(() => setIsPersonnelModalOpen(true))}
       onCreateGroup={handleCreateGroup}
@@ -272,16 +281,23 @@ function App() {
   );
 
   return (
-    <div className="app-container">
-      {isMobile ? (
-        <MobileDrawer isOpen={isMobileDrawerOpen} onClose={() => setIsMobileDrawerOpen(false)}>
-          {sidebarElement}
-        </MobileDrawer>
-      ) : (
-        sidebarElement
-      )}
-      <main className="main-content">
-        <Routes>
+    <>
+      {/* Nằm NGOÀI .app-container (fixed, cao cố định) - nếu chèn vào trong
+          flex column của .main-content sẽ phá layout height:100% mà nhiều
+          trang con giả định (vd .board-container dùng margin âm để lấp đầy
+          đúng main-content, không tính đến 1 sibling mới chiếm chỗ). Xem
+          .app-container's margin-top bù lại đúng chiều cao thanh này. */}
+      <ActiveTimerBar onJumpToModule={selectModule} />
+      <div className="app-container">
+        {isMobile ? (
+          <MobileDrawer isOpen={isMobileDrawerOpen} onClose={() => setIsMobileDrawerOpen(false)}>
+            {sidebarElement}
+          </MobileDrawer>
+        ) : (
+          sidebarElement
+        )}
+        <main className="main-content">
+          <Routes>
           <Route
             path="/"
             element={
@@ -357,6 +373,9 @@ function App() {
                 onToggleTheme={toggleTheme}
                 flatModules={flatModules}
                 onOpenSettings={selectSettings}
+                onJumpToModule={selectModule}
+                onJumpToGroup={(id) => selectProject({ id })}
+                onJumpToKnowledge={selectKnowledge}
               />
             }
           />
@@ -368,6 +387,30 @@ function App() {
                 onToggleTheme={toggleTheme}
                 flatModules={flatModules}
                 onJumpToModule={selectModule}
+              />
+            }
+          />
+          <Route
+            path="/knowledge"
+            element={
+              <KnowledgeBasePage
+                theme={theme}
+                onToggleTheme={toggleTheme}
+                flatModules={flatModules}
+                onJumpToModule={selectModule}
+              />
+            }
+          />
+          <Route
+            path="/time-dashboard"
+            element={
+              <TimeDashboardPage
+                theme={theme}
+                onToggleTheme={toggleTheme}
+                flatModules={flatModules}
+                groups={groups}
+                onJumpToModule={selectModule}
+                onJumpToGroup={(id) => selectProject({ id })}
               />
             }
           />
@@ -403,7 +446,8 @@ function App() {
         onClose={() => setIsPersonnelModalOpen(false)}
         groups={groups}
       />
-    </div>
+      </div>
+    </>
   );
 }
 

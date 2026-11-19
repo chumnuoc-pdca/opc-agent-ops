@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Camera, Edit2, Edit3, Save, Plus, Search } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Camera, Edit2, Edit3, Save, Plus, Search, Clock } from 'lucide-react';
 import HeaderActions from './HeaderActions';
 import GroupModal from './GroupModal';
 import ModuleModal from './ModuleModal';
@@ -7,6 +7,9 @@ import { ModuleTypeIcon } from './ModuleTypeBadge';
 import { loadAllBoards } from '../utils/boardStorage';
 import { fileToResizedDataUrl } from '../utils/imageResize';
 import { hexToRgba } from '../utils/colorFromImage';
+import NotesPanel from './NotesPanel';
+import { fetchTimeStats } from '../utils/timeStatsOperations';
+import { formatMinutes } from '../utils/timeTrackingOperations';
 
 export default function ProjectOverviewPage({
   group, groups = [], flatModules, theme, onToggleTheme, onJumpToModule, onSelectModule,
@@ -20,6 +23,20 @@ export default function ProjectOverviewPage({
   // Module modal state: null | { mode: 'create' } | { mode: 'edit', module }
   const [moduleModalState, setModuleModalState] = useState(null);
   const [moduleSearchQuery, setModuleSearchQuery] = useState('');
+  const [timeStats, setTimeStats] = useState(null);
+
+  // Kết nối Time tracking (Phase 12) vào trang dự án đã có sẵn - tổng thời
+  // gian thật đã theo dõi 30 ngày gần nhất, lọc đúng dự án này.
+  useEffect(() => {
+    // Ngày cục bộ (Y/M/D máy khách), không dùng toISOString() (quy đổi UTC)
+    // - đúng quy ước "local date" đã dùng xuyên suốt CalendarPage.jsx.
+    const localDateISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const to = new Date();
+    const from = new Date(Date.now() - 29 * 86400000);
+    fetchTimeStats({ from: localDateISO(from), to: localDateISO(to), groupId: group.id })
+      .then((s) => setTimeStats(s))
+      .catch(() => setTimeStats(null));
+  }, [group.id]);
 
   const projectModules = useMemo(() => flatModules.filter(m => m.groupId === group.id), [flatModules, group.id]);
   const boards = useMemo(() => loadAllBoards(projectModules), [projectModules]);
@@ -99,6 +116,11 @@ export default function ProjectOverviewPage({
               <button type="button" className="project-hero-edit-link" onClick={() => setIsGroupModalOpen(true)}>
                 <Edit2 size={12} /> Sửa dự án
               </button>
+              {timeStats && timeStats.totalMinutes > 0 && (
+                <span className="project-hero-time-chip" title="Tổng thời gian đã theo dõi (Start/Stop) 30 ngày gần nhất">
+                  <Clock size={12} /> {formatMinutes(timeStats.totalMinutes)} (30 ngày)
+                </span>
+              )}
             </div>
           </div>
           {coverError && <p className="form-error">{coverError}</p>}
@@ -131,6 +153,13 @@ export default function ProjectOverviewPage({
               {group.description || 'Chưa có mô tả cho dự án này. Bấm "Chỉnh sửa" để thêm.'}
             </p>
           )}
+        </div>
+
+        <div className="project-description-card">
+          <div className="board-subtitle-card-header">
+            <span className="project-notes-label">Ghi chú dự án</span>
+          </div>
+          <NotesPanel scopeType="group" scopeId={group.id} emptyHint="Chưa có ghi chú nào cho dự án này." />
         </div>
 
         <div className="project-actions-bar">

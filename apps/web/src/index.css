@@ -168,8 +168,121 @@ button, input, select, textarea {
 /* Layout */
 .app-container {
   display: flex;
-  height: 100vh;
+  /* Chừa đúng chiều cao ActiveTimerBar.jsx (fixed, ngoài .app-container) -
+     xem lý do đặt ngoài luồng flex trong App.jsx. margin-top ĐẨY xuống
+     (bar fixed không chiếm chỗ trong flow) - chỉ giảm height không đủ,
+     app-container vẫn bắt đầu ở y=0 và bị bar che mất phần trên cùng nếu
+     thiếu dòng này (bug thật người dùng báo lại). */
+  height: calc(100vh - var(--timer-bar-height));
+  margin-top: var(--timer-bar-height);
   width: 100vw;
+}
+
+/* ============ ActiveTimerBar (Phase 12 - theo dõi thời gian) ============ */
+:root { --timer-bar-height: 40px; }
+
+.active-timer-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--timer-bar-height);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.8rem;
+}
+
+.active-timer-bar.is-running {
+  background: var(--indigo-soft);
+}
+
+.active-timer-bar-who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.active-timer-bar-who select {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 3px 6px;
+  background: var(--bg-surface);
+  font-size: 0.78rem;
+  max-width: 160px;
+}
+
+.active-timer-bar-idle {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.active-timer-bar-task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--indigo);
+  padding: 0;
+  text-align: left;
+}
+
+.active-timer-bar-pulse {
+  animation: timerPulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes timerPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.active-timer-bar-content {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.active-timer-bar-module {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.active-timer-bar-elapsed {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.active-timer-bar-stop {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 4px 10px;
+  background: var(--bg-surface);
+  cursor: pointer;
+  color: var(--danger, #d64545);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 768px) {
+  .active-timer-bar-module { display: none; }
+  .active-timer-bar-who select { max-width: 90px; }
 }
 
 .main-content {
@@ -1134,6 +1247,20 @@ button, input, select, textarea {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/* Kết nối Time tracking (Phase 12) vào trang Board module đã có sẵn. */
+.board-title-time-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--indigo);
+  background: var(--indigo-soft);
+  padding: 3px 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
 }
 
 .board-title-row h1 {
@@ -2379,6 +2506,13 @@ button, input, select, textarea {
   border-top: 1px solid var(--border-color);
 }
 
+.modal-body > .modal-section-label:first-child,
+.modal-body > .modal-section-label:first-of-type,
+.task-quick-action-tiles + .modal-section-label {
+  border-top: none;
+  padding-top: 0;
+}
+
 .form-row .form-field {
   flex: 1;
 }
@@ -2583,6 +2717,15 @@ button, input, select, textarea {
   color: var(--text-muted);
 }
 
+.time-tracked-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--indigo);
+}
+
 /* ============ Agent Run Badge (Phase 2 - trạng thái vận hành agent) ============ */
 .agent-run-badge {
   display: inline-flex;
@@ -2620,6 +2763,465 @@ button, input, select, textarea {
 .agent-run-badge.agent-run-done {
   background: var(--success-soft);
   color: var(--success);
+}
+
+/* ============ Time Tracking Section (TaskModal - Phase 12) ============ */
+.time-tracking-section {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  background: var(--bg-surface-alt);
+}
+
+.time-tracking-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.time-tracking-total {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.time-tracking-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.time-tracking-btn.start {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.time-tracking-btn.stop {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.time-tracking-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.time-tracking-entries {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.time-tracking-entries li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  padding: 3px 0;
+  border-top: 1px solid var(--border-color);
+}
+
+.time-tracking-entries li:first-child { border-top: none; }
+
+.time-tracking-entry-person { font-weight: 600; color: var(--text-primary); flex-shrink: 0; }
+.time-tracking-entry-when { flex: 1; text-align: center; }
+.time-tracking-entry-duration { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+
+.project-notes-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* ============ Time Dashboard (Phase 16 - thống kê thời gian) ============ */
+.time-dashboard-content {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px 28px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.time-dashboard-filters {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.time-dashboard-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.time-dashboard-filters input,
+.time-dashboard-filters select {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: var(--bg-surface);
+  font-size: 0.82rem;
+}
+
+.time-dashboard-section {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  background: var(--bg-surface);
+}
+
+.time-dashboard-section h3 {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+}
+
+.time-dashboard-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .time-dashboard-grid-2 { grid-template-columns: 1fr; }
+}
+
+.time-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 160px;
+  padding-top: 8px;
+}
+
+.time-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 6px;
+}
+
+.time-bar-fill {
+  width: 60%;
+  min-height: 2px;
+  background: var(--indigo);
+  border-radius: 4px 4px 0 0;
+}
+
+.time-bar-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.time-hbar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.time-hbar-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 60px;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Phase 16→cũ: hàng thống kê bấm được để nhảy thẳng tới dự án/module tương
+   ứng (reset lại style mặc định của <button>, giữ nguyên layout grid). */
+.time-hbar-row-clickable {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.time-hbar-row-clickable:hover {
+  background: var(--bg-hover);
+}
+
+.time-task-row-clickable {
+  cursor: pointer;
+}
+
+.time-task-row-clickable:hover {
+  background: var(--bg-hover);
+}
+
+.time-hbar-label {
+  font-size: 0.76rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.time-hbar-track {
+  height: 8px;
+  background: var(--bg-hover);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.time-hbar-fill {
+  height: 100%;
+  background: var(--indigo);
+  border-radius: 4px;
+}
+
+.time-hbar-value {
+  font-size: 0.72rem;
+  text-align: right;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.time-task-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.time-task-table th {
+  text-align: left;
+  padding: 6px 8px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 600;
+}
+
+.time-task-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.knowledge-base-content {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 28px 60px;
+}
+
+/* ============ Notes Panel (Phase 13 - ghi chú/kho tri thức) ============ */
+.notes-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.notes-panel-header {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.notes-panel-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 5px 10px;
+  background: var(--bg-surface);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--indigo);
+}
+
+.notes-panel-empty {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  padding: 8px 0;
+}
+
+.notes-editor {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: var(--bg-surface-alt);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notes-editor-title {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  background: var(--bg-surface);
+}
+
+.notes-editor-toolbar {
+  display: flex;
+  gap: 6px;
+}
+
+.notes-editor-toolbar button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: var(--bg-surface);
+  font-size: 0.72rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.notes-editor-toolbar button.active {
+  background: var(--indigo-soft);
+  color: var(--indigo);
+  border-color: var(--indigo);
+}
+
+.notes-editor textarea {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  resize: vertical;
+  background: var(--bg-surface);
+}
+
+.notes-editor-preview {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-height: 120px;
+  background: var(--bg-surface);
+  font-size: 0.82rem;
+}
+
+/* Nội dung markdown render ra (renderMarkdownLite) dùng chung 1 tỉ lệ cỡ chữ
+   nhỏ gọn ở cả 2 nơi hiện nó (xem trước lúc soạn + danh sách ghi chú đã lưu)
+   - không đặt cỡ chữ nghĩa là trình duyệt tự áp h1 mặc định ~2em, to lệch
+   hẳn so với phần còn lại của form/trang (phát hiện qua audit giao diện
+   thật, không phải suy đoán). */
+.notes-editor-preview p,
+.notes-list-item-body p { margin: 4px 0; }
+.notes-editor-preview h1, .notes-list-item-body h1 { margin: 6px 0 4px; font-size: 1.05rem; font-weight: 700; }
+.notes-editor-preview h2, .notes-list-item-body h2 { margin: 6px 0 4px; font-size: 0.95rem; font-weight: 700; }
+.notes-editor-preview h3, .notes-list-item-body h3 { margin: 6px 0 4px; font-size: 0.88rem; font-weight: 700; }
+.notes-editor-preview ul, .notes-list-item-body ul { margin: 4px 0; padding-left: 18px; }
+.notes-editor-preview li.md-checkbox, .notes-list-item-body li.md-checkbox { list-style: none; margin-left: -18px; }
+.notes-editor-preview pre, .notes-list-item-body pre { background: var(--bg-surface-alt); padding: 8px; border-radius: 6px; overflow-x: auto; }
+.notes-editor-preview code, .notes-list-item-body code { font-family: ui-monospace, monospace; font-size: 0.78rem; }
+
+.notes-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.notes-editor-cancel, .notes-editor-save {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notes-editor-cancel {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.notes-editor-save {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.notes-editor-save:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notes-list-item {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  background: var(--bg-surface);
+}
+
+.notes-list-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.notes-list-item-title {
+  font-weight: 700;
+  font-size: 0.84rem;
+}
+
+.notes-list-item-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.notes-list-item-actions button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 3px;
+}
+
+.notes-list-item-actions button:hover {
+  color: var(--indigo);
+}
+
+.notes-list-item-body {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.notes-list-item-when {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
 }
 
 /* ============ Agent Run Panel (TaskModal - Phase 2) ============ */
@@ -4225,6 +4827,38 @@ button, input, select, textarea {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.chat-citations {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.chat-citations-label {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.chat-citation-chip {
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.7rem;
+  background: var(--indigo-soft);
+  color: var(--indigo);
+  cursor: pointer;
+}
+
+.chat-citation-chip:disabled {
+  cursor: default;
+  opacity: 0.85;
 }
 
 .tool-activity-item {
@@ -6706,8 +7340,8 @@ button, input, select, textarea {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 14px 22px 0;
-  margin-bottom: 14px;
+  padding: 0;
+  margin-bottom: 16px;
 }
 
 .quick-action-tile-btn {
@@ -7454,6 +8088,186 @@ button, input, select, textarea {
 }
 
 /* ============ Clean Pure Task List & 7-Column Grid Styling ============ */
+
+/* ============ Time Block Grid (Phase 15 - lưới giờ kéo-thả) ============ */
+.time-block-layout {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.time-block-unscheduled {
+  width: 220px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  /* --bg-surface (trắng), không phải --bg-surface-alt - ở cấp trang (ngoài
+     modal), 2 biến này trùng màu nền trang (bg-app), khiến khung "biến
+     mất" - đúng pattern .stat-card/.project-description-card đã dùng, phát
+     hiện qua audit giao diện thật (đo computed style, không chỉ nhìn). */
+  background: var(--bg-surface);
+  max-height: 640px;
+  overflow-y: auto;
+}
+
+.time-block-unscheduled-title {
+  font-weight: 700;
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+}
+
+.time-block-unscheduled-empty {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.time-block-unscheduled-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.time-block-tray-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-color);
+  cursor: grab;
+  font-size: 0.76rem;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.time-block-tray-chip:active { cursor: grabbing; }
+
+.time-block-grid-scroll {
+  flex: 1;
+  min-width: 0;
+  max-height: 640px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+}
+
+.time-block-grid {
+  position: relative;
+  margin-left: 56px;
+  border-left: 1px solid var(--border-color);
+}
+
+.time-block-hour-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 60px;
+  border-top: 1px solid var(--border-color);
+}
+
+.time-block-hour-label {
+  position: absolute;
+  left: -52px;
+  top: -7px;
+  width: 44px;
+  text-align: right;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.time-block-now-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--danger);
+  z-index: 3;
+}
+
+.time-block-item {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  border-radius: 6px;
+  background: var(--indigo-soft);
+  border-left: 3px solid var(--indigo);
+  padding: 3px 8px;
+  overflow: hidden;
+  cursor: grab;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.time-block-item.dragging {
+  opacity: 0.85;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  z-index: 5;
+}
+
+.time-block-item.drag-ghost {
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.time-block-item:active { cursor: grabbing; }
+
+.time-block-item-code {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--indigo);
+}
+
+.time-block-item-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.time-block-item-time {
+  font-size: 0.64rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.time-block-remove-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 1px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.time-block-item:hover .time-block-remove-btn { opacity: 1; }
+
+.time-block-resize-handle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6px;
+  cursor: ns-resize;
+}
+
+@media (max-width: 768px) {
+  .time-block-layout { flex-direction: column; }
+  .time-block-unscheduled { width: 100%; max-height: 200px; }
+}
 
 .daily-pure-task-list {
   display: flex;
@@ -9385,6 +10199,17 @@ button, input, select, textarea {
   align-self: flex-start;
 }
 
+/* Kết nối Time tracking (Phase 12) vào trang dự án đã có sẵn từ trước. */
+.project-hero-time-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--indigo);
+  align-self: flex-start;
+}
+
 .project-hero-edit-link:hover {
   color: var(--text-primary);
 }
@@ -11125,32 +11950,17 @@ button, input, select, textarea {
     font-size: 0.85rem;
   }
 
-  /* Panel tiến độ bên phải: nổi full-screen thay vì ép hẹp layout board. */
+  /* Panel tiến độ bên phải: trượt từ cạnh phải (drawer) trên mobile */
   .right-sidebar-panel {
     position: fixed;
-    inset: 0;
-    width: 100%;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 320px;
+    max-width: 85vw;
     z-index: 950;
     border-radius: 0;
-  }
-
-  /* Nút mở panel (lúc đang thu gọn) vốn định vị theo góc của
-     .board-main-layout - trên mobile khu đó bắt đầu ngay sát mép trên của
-     cột thẻ đầu tiên nên luôn đè lên thẻ. Chuyển sang fixed, xếp NGAY TRÊN
-     .mobile-board-toolbar (bottom:64px, cao ~44px) - không chồng lên nhau,
-     chỉ giữ icon + số % để đủ gọn. */
-  .drawer-collapsed-handle-btn {
-    position: fixed;
-    top: auto;
-    bottom: 116px;
-    right: 16px;
-    z-index: 900;
-    flex-direction: row;
-    padding: 8px 12px;
-    border-radius: 24px;
-  }
-  .drawer-collapsed-handle-btn .handle-text {
-    display: none;
+    box-shadow: -6px 0 24px rgba(0, 0, 0, 0.25);
   }
 
   /* ---- Gantt / Timeline (module tab + trang toàn công ty, cùng class) ---- */

@@ -11,6 +11,10 @@ import moduleCopyRoutes from './routes/moduleCopy.js';
 import boardRoutes from './routes/boards.js';
 import moduleKvRoutes from './routes/moduleKv.js';
 import taskRoutes from './routes/tasks.js';
+import timeEntriesRoutes from './routes/timeEntries.js';
+import notesRoutes from './routes/notes.js';
+import timeBlocksRoutes from './routes/timeBlocks.js';
+import timeStatsRoutes from './routes/timeStats.js';
 import orchestratorRoutes from './routes/orchestrator.js';
 import agentRunRoutes from './routes/agentRuns.js';
 import auditLogRoutes from './routes/auditLog.js';
@@ -22,12 +26,21 @@ import adminRestoreRoutes from './routes/adminRestore.js';
 import { loadAgentRegistry, watchAgentRegistry } from './agents-loader.js';
 import { startWorker } from './worker/index.js';
 import { startHrMetaSchedule } from './hrMetaAgent.js';
+import { rebuildKnowledgeIndex } from './orchestrator/knowledgeIndex.js';
 
 runMigrations();
 loadAgentRegistry();
 watchAgentRegistry();
+// Phase 14: rebuild toàn bộ chỉ mục RAG mỗi lần khởi động - tự chữa lành,
+// rẻ ở quy mô dữ liệu hiện tại (xem lý do trong knowledgeIndex.js).
+rebuildKnowledgeIndex();
 
-const fastify = Fastify({ logger: true });
+// Mặc định Fastify giới hạn body 1MB - cấu trúc groups/modules (PUT
+// /api/structure ghi đè toàn bộ cây, xem routes/structure.js) đã vượt
+// ngưỡng đó chỉ riêng phần text, nên thêm 1 ảnh bìa base64 (~200-500KB) là
+// tràn giới hạn và bị 413 âm thầm (saveStructure() chỉ console.error, không
+// báo người dùng) - đây là nguyên nhân thật gây lỗi "không đổi được ảnh bìa".
+const fastify = Fastify({ logger: true, bodyLimit: 20 * 1024 * 1024 });
 await fastify.register(cors, { origin: true, credentials: true });
 await fastify.register(cookie);
 
@@ -49,6 +62,10 @@ await fastify.register(moduleCopyRoutes);
 await fastify.register(boardRoutes);
 await fastify.register(moduleKvRoutes);
 await fastify.register(taskRoutes);
+await fastify.register(timeEntriesRoutes);
+await fastify.register(notesRoutes);
+await fastify.register(timeBlocksRoutes);
+await fastify.register(timeStatsRoutes);
 await fastify.register(orchestratorRoutes);
 await fastify.register(agentRunRoutes);
 await fastify.register(auditLogRoutes);

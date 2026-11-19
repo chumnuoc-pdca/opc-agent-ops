@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import {
   ChevronDown, ChevronRight, LayoutDashboard, Boxes, Search, X,
-  CalendarDays, GanttChartSquare, Sparkles, Settings, Plus, MoreHorizontal, Pencil, ScrollText, Layers, FolderKanban, GripVertical, Copy, Users
+  CalendarDays, GanttChartSquare, Sparkles, Settings, Plus, MoreHorizontal, Pencil, ScrollText, Layers, FolderKanban, GripVertical, Copy, Users, BookOpen, BarChart3
 } from 'lucide-react';
 import { loadAllBoards } from '../utils/boardStorage';
 import GroupModal from './GroupModal';
@@ -14,7 +14,7 @@ const MODULE_DND_TYPE_PREFIX = 'SIDEBAR-MODULES-';
 
 export default function Sidebar({
   groups, flatModules, view,
-  onSelectModule, onSelectProject, onSelectOverview, onSelectCalendar, onSelectTimeline, onSelectChat, onSelectAuditLog, onSelectSettings, onOpenPersonnel,
+  onSelectModule, onSelectProject, onSelectOverview, onSelectCalendar, onSelectTimeline, onSelectChat, onSelectAuditLog, onSelectKnowledge, onSelectTimeDashboard, onSelectSettings, onOpenPersonnel,
   onCreateGroup, onUpdateGroup, onDeleteGroup,
   onCreateModule, onUpdateModule, onDeleteModule,
   onReorderGroups, onReorderModules, onCopyModule
@@ -192,6 +192,13 @@ export default function Sidebar({
               <span>Timeline Toàn Công Ty</span>
             </div>
             <div
+              className={`sidebar-item top-level ${view.type === 'timeDashboard' ? 'active' : ''}`}
+              onClick={onSelectTimeDashboard}
+            >
+              <BarChart3 size={16} className="sidebar-item-icon" />
+              <span>Thống kê thời gian</span>
+            </div>
+            <div
               className="sidebar-item top-level"
               onClick={onOpenPersonnel}
             >
@@ -355,6 +362,13 @@ export default function Sidebar({
             >
               <ScrollText size={16} className="sidebar-item-icon" />
               <span>Nhật ký & SOP AI</span>
+            </div>
+            <div
+              className={`sidebar-item top-level ${view.type === 'knowledge' ? 'active' : ''}`}
+              onClick={onSelectKnowledge}
+            >
+              <BookOpen size={16} className="sidebar-item-icon" />
+              <span>Kho tri thức</span>
             </div>
           </>
         )}

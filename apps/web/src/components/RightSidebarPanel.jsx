@@ -51,17 +51,7 @@ export default function RightSidebarPanel({ boardData, groups, isOpen = true, on
   const recentActivity = loadAuditLog().slice(0, 4);
 
   if (!isOpen) {
-    return (
-      <button
-        className="drawer-collapsed-handle-btn"
-        onClick={onToggle}
-        title="Mở bảng thống kê tiến độ tổng thể"
-      >
-        <PanelRightOpen size={18} />
-        <div className="handle-badge">{overallPercent}%</div>
-        <span className="handle-text">Tiến Độ</span>
-      </button>
-    );
+    return null;
   }
 
   return (

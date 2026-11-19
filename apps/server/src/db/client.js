@@ -52,6 +52,12 @@ export function runMigrations() {
   if (!taskColumns.includes('cover_color')) {
     db.exec('ALTER TABLE tasks ADD COLUMN cover_color TEXT');
   }
+  if (!taskColumns.includes('estimate_minutes')) {
+    db.exec('ALTER TABLE tasks ADD COLUMN estimate_minutes INTEGER');
+  }
+  if (!taskColumns.includes('actual_minutes')) {
+    db.exec("ALTER TABLE tasks ADD COLUMN actual_minutes INTEGER NOT NULL DEFAULT 0");
+  }
 
   // Tự động đồng bộ và sửa mã thẻ đầu việc (task code) cho đúng theo mã module (module.code)
   const modules = db.prepare('SELECT id, code FROM modules').all();
